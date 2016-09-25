@@ -5,19 +5,13 @@ train$train = 1
 test$train = 0
 test$Footfall = -1
 
+#p_twelve$year = as.factor(substr(p_twelve$Date, 7, 10))
+#year_ave = aggregate(Footfall ~ year, data = p_twelve, FUN = mean)
+
 df = rbind(train, test)
 
 df$Direction_Of_Wind[is.na(df$Direction_Of_Wind)] = mean(df$Direction_Of_Wind[!is.na(df$Direction_Of_Wind)])
 #put in quadrants as factors - failed
-
-# df$Max_Breeze_Speed = NULL
-# df$Min_Breeze_Speed = NULL
-# df$Max_Atmospheric_Pressure = NULL
-# df$Min_Atmospheric_Pressure = NULL
-# df$Max_Ambient_Pollution = NULL
-# df$Min_Ambient_Pollution = NULL
-#df$Max_Moisture_In_Park = NULL
-#df$Min_Moisture_In_Park = NULL
 
 df$Var1[is.na(df$Var1)] = mean(df$Var1[!is.na(df$Var1)])
 df$Average_Breeze_Speed[is.na(df$Average_Breeze_Speed)] = mean(df$Average_Breeze_Speed[!is.na(df$Average_Breeze_Speed)])
@@ -35,11 +29,29 @@ df$Max_Moisture_In_Park[is.na(df$Max_Moisture_In_Park)] = mean(df$Max_Moisture_I
 df$Max_Ambient_Pollution[is.na(df$Max_Ambient_Pollution)] = mean(df$Max_Ambient_Pollution[!is.na(df$Max_Ambient_Pollution)])
 
 df$month = as.factor(substr(df$Date, 4, 5))
+df$date_month = as.factor(substr(df$Date, 1, 5))
 df$Date = as.Date(df$Date, format = "%d-%m-%Y")
 df$weekday = as.factor(weekdays(df$Date))
 df$Date = NULL
 df$Location_Type = as.factor(df$Location_Type)
+
 df$Park_ID = as.factor(df$Park_ID)
+
+footfall_ave = aggregate(Footfall ~ Park_ID, data = train, FUN = mean)
+colnames(footfall_ave) = c("Park_ID", "footfall_ave")
+df = merge(df, footfall_ave, by = "Park_ID")
+
+breeze_ave = aggregate(Average_Breeze_Speed ~ Park_ID, data = train, FUN = mean)
+colnames(breeze_ave) = c("Park_ID", "breeze_ave")
+df = merge(df, breeze_ave, by = "Park_ID", all.x = TRUE)
+
+atmospheric_ave = aggregate(Average_Atmospheric_Pressure ~ Park_ID, data = train, FUN = mean)
+colnames(atmospheric_ave) = c("Park_ID", "atmospheric_ave")
+df = merge(df, atmospheric_ave, by = "Park_ID", all.x = TRUE)
+
+moisture_ave = aggregate(Average_Moisture_In_Park ~ Park_ID, data = train, FUN = mean)
+colnames(moisture_ave) = c("Park_ID", "moisture_ave")
+df = merge(df, moisture_ave, by = "Park_ID", all.x = TRUE)
 
 train_mod = subset(df, df$train == 1)
 test_mod = subset(df, df$train == 0)
