@@ -5,9 +5,6 @@ train$train = 1
 test$train = 0
 test$Footfall = -1
 
-#p_twelve$year = as.factor(substr(p_twelve$Date, 7, 10))
-#year_ave = aggregate(Footfall ~ year, data = p_twelve, FUN = mean)
-
 df = rbind(train, test)
 
 df$Direction_Of_Wind[is.na(df$Direction_Of_Wind)] = mean(df$Direction_Of_Wind[!is.na(df$Direction_Of_Wind)])
@@ -53,9 +50,13 @@ moisture_ave = aggregate(Average_Moisture_In_Park ~ Park_ID, data = train, FUN =
 colnames(moisture_ave) = c("Park_ID", "moisture_ave")
 df = merge(df, moisture_ave, by = "Park_ID", all.x = TRUE)
 
+df$breeze_variance = df$Max_Breeze_Speed - df$Min_Breeze_Speed
+df$atmospheric_variance = df$Max_Atmospheric_Pressure - df$Min_Atmospheric_Pressure
+df$ambient_variance = df$Max_Ambient_Pollution - df$Min_Ambient_Pollution
+df$moisture_variance = df$Max_Moisture_In_Park - df$Min_Moisture_In_Park
+
 train_mod = subset(df, df$train == 1)
 test_mod = subset(df, df$train == 0)
-
 train_mod$train = NULL
 test_mod$train = NULL
 
@@ -71,3 +72,33 @@ rf = h2o.randomForest(x = feature_names, y = "Footfall", training_frame = train_
 res = predict(rf, test_h2o)
 pred <- data.frame(ID = as.vector(test_mod$ID), Footfall = as.vector(res))
 write.csv(pred, "submission_rf_h2o_2.csv", row.names = FALSE)
+
+
+# library(caTools)
+# set.seed(101) 
+# 
+# sample = sample.split(train_mod, SplitRatio = .75)
+# train_dl = subset(train_mod, sample == TRUE)
+# val_dl = subset(train_mod, sample == FALSE)
+# 
+# library(h2o)
+# h2o.init()
+# write.table(train_dl, gzfile('./train.csv.gz'),quote=F,sep=',',row.names=F)
+# write.table(val_dl, gzfile('./val.csv.gz'),quote=F,sep=',',row.names=F)
+# write.table(test_mod, gzfile('./test.csv.gz'),quote=F,sep=',',row.names=F)
+# feature_names = names(train_dl)
+# feature_names = feature_names[! feature_names %in% c("ID", "Footfall")]
+# train_h2o = h2o.uploadFile("./train.csv.gz", destination_frame = "av_train")
+# val_h2o = h2o.uploadFile("./val.csv.gz", destination_frame = "av_val")
+# test_h2o = h2o.uploadFile("./test.csv.gz", destination_frame = "av_test")
+# dlmodel <- h2o.deeplearning(x=feature_names, y="Footfall", training_frame = train_h2o, validation_frame = val_h2o, hidden=c(50,50), epochs = 10, activation="Rectifier", variable_importances = TRUE)
+# res = predict(dlmodel, test_h2o)
+# pred <- data.frame(ID = as.vector(test_mod$ID), Footfall = as.vector(res))
+# write.csv(pred, "submission_dl.csv", row.names = FALSE)
+
+# feature_names = names(train_dl)
+# feature_names = feature_names[! feature_names %in% c("ID", "Footfall")]
+# gbm <- h2o.gbm(x = feature_names, y = "Footfall", training_frame = train_h2o, ntrees = 200, max_depth = 30)
+# res = predict(gbm, test_h2o)
+# pred <- data.frame(ID = as.vector(test_mod$ID), Footfall = as.vector(res))
+# write.csv(pred, "submission_gbm.csv", row.names = FALSE)
